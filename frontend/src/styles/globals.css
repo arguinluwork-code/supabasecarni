@@ -62,6 +62,14 @@ body {
   height: 100vh;
 }
 
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+
 /* Loading Overlay */
 .loading-overlay {
   position: fixed;
