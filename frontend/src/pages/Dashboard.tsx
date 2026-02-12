@@ -5,7 +5,7 @@ import type { DashboardStats, ProductFull } from '../types/database';
 import './Dashboard.css';
 
 export function Dashboard() {
-  const { products, stats, loading, setProducts, setStats, setLoading, setError } = useAppStore();
+  const { products, stats, setProducts, setStats, setLoading, setError } = useAppStore();
 
   useEffect(() => {
     loadDashboardData();
