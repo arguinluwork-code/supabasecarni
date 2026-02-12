@@ -100,6 +100,12 @@ UPDATE config SET value = 'tu-email@example.com' WHERE key = 'odoo_username';
 UPDATE config SET value = 'tu-api-key-aqui' WHERE key = 'odoo_api_key';
 ```
 
+⚠️ **IMPORTANTE**: La URL de Odoo debe ser **solo el dominio**, sin `/jsonrpc` al final:
+- ✅ Correcto: `https://tu-empresa.odoo.com`
+- ❌ Incorrecto: `https://tu-empresa.odoo.com/jsonrpc`
+
+El OdooClient agrega `/jsonrpc` automáticamente.
+
 **Opción B: Usando Secrets (para Edge Functions)**
 
 ```bash
