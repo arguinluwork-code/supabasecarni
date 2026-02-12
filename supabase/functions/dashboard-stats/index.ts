@@ -17,6 +17,9 @@ serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
+  // Allow unauthenticated requests for testing
+  // TODO: Add proper authentication in production
+
   try {
     // Initialize Supabase client
     const supabase = createSupabaseClient();

@@ -34,6 +34,9 @@ serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
+  // Allow unauthenticated requests for testing
+  // TODO: Add proper authentication in production
+
   try {
     log('Starting sync pull from Odoo...');
     const startTime = Date.now();
