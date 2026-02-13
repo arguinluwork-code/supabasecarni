@@ -16,6 +16,7 @@ export function Tags() {
   const [expandedDimensions, setExpandedDimensions] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'product_count'>('name');
+  const [initializing, setInitializing] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -123,6 +124,26 @@ export function Tags() {
 
   function collapseAll() {
     setExpandedDimensions(new Set());
+  }
+
+  async function initializeTags() {
+    try {
+      setInitializing(true);
+      setError(null);
+
+      const { data, error: initError } = await supabase.functions.invoke('init-tags');
+
+      if (initError) throw initError;
+
+      console.log('Tags initialized:', data);
+
+      // Reload data
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al inicializar tags');
+    } finally {
+      setInitializing(false);
+    }
   }
 
   if (loading) {
@@ -252,9 +273,19 @@ export function Tags() {
             <div className="empty-state-description">
               {searchTerm
                 ? 'No se encontraron tags con ese término de búsqueda'
-                : 'No hay tags sincronizados desde Odoo'
+                : 'Las tablas de tags están vacías. Haz clic en el botón para inicializar los tags predefinidos.'
               }
             </div>
+            {!searchTerm && tags.length === 0 && (
+              <button
+                onClick={initializeTags}
+                disabled={initializing}
+                className="btn btn-primary"
+                style={{ marginTop: '1rem' }}
+              >
+                {initializing ? 'Inicializando...' : 'Inicializar Tags'}
+              </button>
+            )}
           </div>
         )}
       </div>
