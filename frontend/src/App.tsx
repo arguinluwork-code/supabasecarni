@@ -8,6 +8,7 @@ import { Tags } from './pages/Tags';
 import { Analytics } from './pages/Analytics';
 import { Sync } from './pages/Sync';
 import { useAppStore } from './store/appStore';
+import { supabase } from './lib/supabase';
 import './styles/globals.css';
 import './styles/pages.css';
 
@@ -30,11 +31,51 @@ function AppContent() {
   };
 
   const handleSyncFromOdoo = async () => {
-    alert('Sincronización desde Odoo (próximamente)');
+    try {
+      const { data, error: syncError } = await supabase.functions.invoke('odoo-sync-pull', {
+        method: 'POST'
+      });
+
+      if (syncError) {
+        alert(`Error: ${syncError.message}`);
+        return;
+      }
+
+      const response = data as any;
+      if (!response?.success) {
+        alert(`Error: ${response?.error || 'Error al sincronizar desde Odoo'}`);
+        return;
+      }
+
+      alert(`✅ ${response.data?.message || 'Sincronización completada'}`);
+      window.location.reload();
+    } catch (err) {
+      alert(`Error: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+    }
   };
 
   const handleSyncToOdoo = async () => {
-    alert('Sincronización a Odoo (próximamente)');
+    try {
+      const { data, error: syncError } = await supabase.functions.invoke('odoo-sync-push', {
+        method: 'POST'
+      });
+
+      if (syncError) {
+        alert(`Error: ${syncError.message}`);
+        return;
+      }
+
+      const response = data as any;
+      if (!response?.success) {
+        alert(`Error: ${response?.error || 'Error al sincronizar hacia Odoo'}`);
+        return;
+      }
+
+      alert(`✅ ${response.data?.message || 'Sincronización completada'}`);
+      window.location.reload();
+    } catch (err) {
+      alert(`Error: ${err instanceof Error ? err.message : 'Error desconocido'}`);
+    }
   };
 
   return (
