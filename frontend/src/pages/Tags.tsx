@@ -27,11 +27,15 @@ export function Tags() {
       setLoading(true);
       setError(null);
 
+      console.log('Loading tags data...');
+
       // Cargar dimensiones
       const { data: dimensionsData, error: dimensionsError } = await supabase
         .from('tag_dimensions')
         .select('*')
         .order('name');
+
+      console.log('Dimensions:', dimensionsData, 'Error:', dimensionsError);
 
       if (dimensionsError) throw dimensionsError;
 
@@ -41,15 +45,20 @@ export function Tags() {
         .select('*')
         .order('tag_name');
 
+      console.log('Tags:', tagsData, 'Error:', tagsError);
+
       if (tagsError) throw tagsError;
 
       setDimensions(dimensionsData || []);
       setTags(tagsData || []);
 
+      console.log(`Loaded ${dimensionsData?.length || 0} dimensions and ${tagsData?.length || 0} tags`);
+
       // Expandir todas las dimensiones por defecto
       const allDimensionIds = (dimensionsData || []).map(d => d.id);
       setExpandedDimensions(new Set(allDimensionIds));
     } catch (err) {
+      console.error('Error loading tags:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar datos');
     } finally {
       setLoading(false);
