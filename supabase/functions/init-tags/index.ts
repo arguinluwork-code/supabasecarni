@@ -5,11 +5,12 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import {
-  successResponse,
-  handleError,
-  handleCors,
-} from '../_shared/utils.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 interface TagDefinition {
   dimension: string;
@@ -65,8 +66,12 @@ const TAG_DEFINITIONS: TagDefinition[] = [
 
 serve(async (req) => {
   // Handle CORS preflight
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders,
+    });
+  }
 
   try {
     const supabase = createClient(
@@ -83,9 +88,16 @@ serve(async (req) => {
     if (checkError) throw checkError;
 
     if (existingTags && existingTags.length > 0) {
-      return successResponse(
-        { count: existingTags.length },
-        'Tags already initialized'
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: { count: existingTags.length },
+          message: 'Tags already initialized',
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
       );
     }
 
@@ -124,14 +136,31 @@ serve(async (req) => {
       totalInserted += tagRows.length;
     }
 
-    return successResponse(
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: {
+          inserted: totalInserted,
+          dimensions: TAG_DEFINITIONS.length,
+        },
+        message: `Successfully initialized ${totalInserted} tags`,
+      }),
       {
-        inserted: totalInserted,
-        dimensions: TAG_DEFINITIONS.length,
-      },
-      `Successfully initialized ${totalInserted} tags`
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
     );
   } catch (error) {
-    return handleError(error);
+    console.error('Error initializing tags:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });
