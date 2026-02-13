@@ -11,6 +11,7 @@ interface Filters {
   syncStatus: string;
   minMargin: string;
   maxMargin: string;
+  tags: string;
 }
 
 export function Products() {
@@ -28,7 +29,8 @@ export function Products() {
     pos: '',
     syncStatus: '',
     minMargin: '',
-    maxMargin: ''
+    maxMargin: '',
+    tags: ''
   });
   const [sortBy, setSortBy] = useState<keyof ProductFull>('name');
   const [sortDesc, setSortDesc] = useState(false);
@@ -114,6 +116,15 @@ export function Products() {
     }
     if (filters.maxMargin) {
       result = result.filter(p => p.margin_percent <= parseFloat(filters.maxMargin));
+    }
+
+    // Filtro por tags
+    if (filters.tags) {
+      const searchTags = filters.tags.toLowerCase();
+      result = result.filter(p =>
+        p.tags?.toLowerCase().includes(searchTags) ||
+        p.tags_with_dimension?.toLowerCase().includes(searchTags)
+      );
     }
 
     // Ordenar
@@ -361,6 +372,14 @@ export function Products() {
             className="filter-input"
           />
 
+          <input
+            type="text"
+            placeholder="Filtrar por tags..."
+            value={filters.tags}
+            onChange={(e) => setFilters({ ...filters, tags: e.target.value })}
+            className="filter-input"
+          />
+
           <button onClick={() => setFilters({
             search: '',
             category: '',
@@ -368,7 +387,8 @@ export function Products() {
             pos: '',
             syncStatus: '',
             minMargin: '',
-            maxMargin: ''
+            maxMargin: '',
+            tags: ''
           })} className="btn-secondary">
             Limpiar filtros
           </button>
@@ -434,6 +454,7 @@ export function Products() {
               <th onClick={() => handleSort('margin_percent')} className="sortable">
                 Margen % {sortBy === 'margin_percent' && (sortDesc ? '▼' : '▲')}
               </th>
+              <th>Tags</th>
               <th>POS</th>
               <th>Activo</th>
               <th onClick={() => handleSort('sync_status')} className="sortable">
@@ -460,6 +481,9 @@ export function Products() {
                 <td>{renderEditableCell(product, 'standard_price', 'number')}</td>
                 <td className={product.margin_percent < 0 ? 'negative-margin' : 'positive-margin'}>
                   {product.margin_percent.toFixed(2)}%
+                </td>
+                <td className="product-tags">
+                  {product.tags_with_dimension || '-'}
                 </td>
                 <td>{renderEditableCell(product, 'available_in_pos', 'checkbox')}</td>
                 <td>{renderEditableCell(product, 'active', 'checkbox')}</td>
