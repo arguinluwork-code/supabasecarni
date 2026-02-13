@@ -80,13 +80,12 @@ export interface TagWithDimension extends Tag {
 
 export interface SyncLog {
   id: number;
-  operation: 'PULL' | 'PUSH';
-  status: 'SUCCESS' | 'ERROR';
-  started_at: string;
-  completed_at: string | null;
-  duration_ms: number | null;
-  products_synced: number | null;
-  categories_synced: number | null;
-  error_message: string | null;
-  details: any;
+  timestamp: string;
+  direction: 'PULL' | 'PUSH';
+  type: string | null;
+  records_affected: number | null;
+  status: 'SUCCESS' | 'ERROR' | 'PARTIAL';
+  message: string | null;
+  error_details: any | null;
+  created_at: string;
 }

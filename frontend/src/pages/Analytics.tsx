@@ -1,16 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { ProductFull, DashboardStats } from '../types/database';
+import {
+  buildMarginDistribution,
+  getTopProductsByMargin,
+  getNegativeMarginProducts,
+} from '../client/dto/analytics';
 import './Analytics.css';
 
 interface CategoryDistribution {
   category: string;
-  count: number;
-  percentage: number;
-}
-
-interface MarginBucket {
-  range: string;
   count: number;
   percentage: number;
 }
@@ -77,47 +76,18 @@ export function Analytics() {
   }, [products]);
 
   // Distribución de márgenes
-  const marginDistribution = useMemo<MarginBucket[]>(() => {
-    const total = products.length;
-    if (total === 0) return [];
-
-    const buckets = [
-      { range: '< 0%', min: -Infinity, max: 0 },
-      { range: '0-10%', min: 0, max: 10 },
-      { range: '10-20%', min: 10, max: 20 },
-      { range: '20-30%', min: 20, max: 30 },
-      { range: '30-40%', min: 30, max: 40 },
-      { range: '40-50%', min: 40, max: 50 },
-      { range: '> 50%', min: 50, max: Infinity }
-    ];
-
-    return buckets.map(bucket => {
-      const count = products.filter(p =>
-        p.margin_percent >= bucket.min && p.margin_percent < bucket.max
-      ).length;
-
-      return {
-        range: bucket.range,
-        count,
-        percentage: (count / total) * 100
-      };
-    });
+  const marginDistribution = useMemo(() => {
+    return buildMarginDistribution(products);
   }, [products]);
 
   // Top productos por margen
   const topProductsByMargin = useMemo(() => {
-    return [...products]
-      .filter(p => p.margin_percent > 0)
-      .sort((a, b) => b.margin_percent - a.margin_percent)
-      .slice(0, 10);
+    return getTopProductsByMargin(products);
   }, [products]);
 
   // Productos con margen negativo
   const negativeMarginProducts = useMemo(() => {
-    return [...products]
-      .filter(p => p.margin_percent < 0)
-      .sort((a, b) => a.margin_percent - b.margin_percent)
-      .slice(0, 10);
+    return getNegativeMarginProducts(products);
   }, [products]);
 
   // Distribución por estado

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { SyncLog, ProductFull } from '../types/database';
+import { ApiResponse, SyncPullPayload, SyncPushPayload } from '../client/dto/sync';
 import './Sync.css';
 
 export function Sync() {
@@ -24,7 +25,7 @@ export function Sync() {
       const { data: logsData, error: logsError } = await supabase
         .from('sync_log')
         .select('*')
-        .order('started_at', { ascending: false })
+        .order('timestamp', { ascending: false })
         .limit(20);
 
       if (logsError) throw logsError;
@@ -59,9 +60,14 @@ export function Sync() {
 
       if (syncError) throw syncError;
 
-      setSyncMessage(
-        `✅ Sincronización completada: ${data.summary?.products_synced || 0} productos, ${data.summary?.categories_synced || 0} categorías`
-      );
+      const response = data as ApiResponse<SyncPullPayload>;
+      if (!response?.success || !response.data) {
+        throw new Error(response?.error || 'Error al sincronizar desde Odoo');
+      }
+
+      setSyncMessage(`✅ ${response.data.message}`);
+
+
 
       // Recargar datos
       await loadData();
@@ -90,9 +96,14 @@ export function Sync() {
 
       if (syncError) throw syncError;
 
-      setSyncMessage(
-        `✅ ${data.updated || 0} productos actualizados en Odoo`
-      );
+      const response = data as ApiResponse<SyncPushPayload>;
+      if (!response?.success || !response.data) {
+        throw new Error(response?.error || 'Error al sincronizar hacia Odoo');
+      }
+
+      setSyncMessage(`✅ ${response.data.message}`);
+
+
 
       // Recargar datos
       await loadData();
@@ -114,12 +125,6 @@ export function Sync() {
       minute: '2-digit',
       second: '2-digit'
     });
-  }
-
-  function formatDuration(ms: number | null) {
-    if (!ms) return '-';
-    if (ms < 1000) return `${ms}ms`;
-    return `${(ms / 1000).toFixed(2)}s`;
   }
 
   if (loading) {
@@ -197,7 +202,9 @@ export function Sync() {
                     <td>€{product.list_price.toFixed(2)}</td>
                     <td>€{product.standard_price.toFixed(2)}</td>
                     <td>
-                      <span className="status-badge status-pending">PENDING</span>
+                      <span className={`status-badge status-${product.sync_status.toLowerCase()}`}>
+                        {product.sync_status}
+                      </span>
                     </td>
                     <td>{formatDate(product.updated_at)}</td>
                   </tr>
@@ -223,9 +230,9 @@ export function Sync() {
                 <th>Fecha</th>
                 <th>Operación</th>
                 <th>Estado</th>
-                <th>Productos</th>
-                <th>Categorías</th>
-                <th>Duración</th>
+                <th>Tipo</th>
+                <th>Registros</th>
+                <th>Mensaje</th>
                 <th>Detalles</th>
               </tr>
             </thead>
@@ -233,10 +240,10 @@ export function Sync() {
               {syncLogs.length > 0 ? (
                 syncLogs.map(log => (
                   <tr key={log.id}>
-                    <td>{formatDate(log.started_at)}</td>
+                    <td>{formatDate(log.timestamp)}</td>
                     <td>
-                      <span className={`operation-badge operation-${log.operation.toLowerCase()}`}>
-                        {log.operation === 'PULL' ? '⬇️ PULL' : '⬆️ PUSH'}
+                      <span className={`operation-badge operation-${log.direction.toLowerCase()}`}>
+                        {log.direction === 'PULL' ? '⬇️ PULL' : '⬆️ PUSH'}
                       </span>
                     </td>
                     <td>
@@ -244,12 +251,12 @@ export function Sync() {
                         {log.status}
                       </span>
                     </td>
-                    <td>{log.products_synced || 0}</td>
-                    <td>{log.categories_synced || 0}</td>
-                    <td>{formatDuration(log.duration_ms)}</td>
+                    <td>{log.type || '-'}</td>
+                    <td>{log.records_affected ?? 0}</td>
+                    <td>{log.message || '-'}</td>
                     <td>
-                      {log.error_message ? (
-                        <span className="error-text" title={log.error_message}>
+                      {log.error_details ? (
+                        <span className="error-text" title={JSON.stringify(log.error_details)}>
                           ❌ Error
                         </span>
                       ) : (

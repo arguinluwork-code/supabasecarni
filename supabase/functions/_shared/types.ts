@@ -195,7 +195,6 @@ export interface ApiResponse<T = any> {
 }
 
 export interface SyncPullResponse {
-  success: boolean;
   elapsed: number;
   counts: {
     taxes: number;
@@ -203,16 +202,13 @@ export interface SyncPullResponse {
     posCategories: number;
     products: number;
   };
-  message?: string;
-  error?: string;
+  message: string;
 }
 
 export interface SyncPushResponse {
-  success: boolean;
   successCount: number;
   errorCount: number;
-  message?: string;
-  error?: string;
+  message: string;
 }
 
 export interface ProductUpdateRequest {

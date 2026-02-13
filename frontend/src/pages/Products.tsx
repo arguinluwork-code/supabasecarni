@@ -173,10 +173,7 @@ export function Products() {
 
       if (updateError) throw updateError;
 
-      // Actualizar localmente
-      setProducts(products.map(p =>
-        p.id === id ? { ...p, ...editValues, modified: true, sync_status: 'PENDING' as const } : p
-      ));
+      await loadData();
 
       setEditingId(null);
       setEditValues({});
@@ -221,12 +218,7 @@ export function Products() {
         if (updateError) throw updateError;
       }
 
-      // Actualizar localmente
-      setProducts(products.map(p =>
-        selectedIds.has(p.id)
-          ? { ...p, ...updates, modified: true, sync_status: 'PENDING' as const }
-          : p
-      ));
+      await loadData();
 
       setSelectedIds(new Set());
       alert(`${ids.length} productos actualizados`);
