@@ -1,10 +1,15 @@
+/**
+ * Carnicería Control - Edge Function: Initialize Tags
+ * Initialize predefined tags in the database
+ */
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import {
+  successResponse,
+  handleError,
+  handleCors,
+} from '../_shared/utils.ts';
 
 interface TagDefinition {
   dimension: string;
@@ -59,9 +64,9 @@ const TAG_DEFINITIONS: TagDefinition[] = [
 ];
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  // Handle CORS preflight
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const supabase = createClient(
@@ -78,9 +83,9 @@ serve(async (req) => {
     if (checkError) throw checkError;
 
     if (existingTags && existingTags.length > 0) {
-      return new Response(
-        JSON.stringify({ message: 'Tags already initialized', count: existingTags.length }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      return successResponse(
+        { count: existingTags.length },
+        'Tags already initialized'
       );
     }
 
@@ -119,19 +124,14 @@ serve(async (req) => {
       totalInserted += tagRows.length;
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Successfully initialized ${totalInserted} tags across ${TAG_DEFINITIONS.length} dimensions`,
+    return successResponse(
+      {
         inserted: totalInserted,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        dimensions: TAG_DEFINITIONS.length,
+      },
+      `Successfully initialized ${totalInserted} tags`
     );
   } catch (error) {
-    console.error('Error initializing tags:', error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return handleError(error);
   }
 });
