@@ -11,6 +11,7 @@ import {
 import { getAllTagsForMapping } from '../../../integrations/supabase/repositories/tags-repo.ts';
 import {
   parseTags,
+  inferTagDimension,
 } from '../../../domain/logic/product/tags.ts';
 import {
   log,
@@ -248,7 +249,14 @@ async function syncProducts(odooClient: OdooClient, supabase: any): Promise<numb
     const posCategoryMap = await createLookupMap(supabase, 'pos_categories', 'odoo_id', 'name');
     const taxMap = await createLookupMap(supabase, 'taxes', 'odoo_id', 'name');
 
-    // Fetch all tags for mapping
+    // Collect all unique tag names from products
+    const allTagNames = new Set<string>();
+    allProducts.forEach(prod => {
+      const tags = parseTags(prod.x_tags);
+      tags.forEach(tagName => allTagNames.add(tagName));
+    });
+
+    // Fetch existing tags
     const tagsData = await getAllTagsForMapping(supabase);
 
     const tagNameToId = new Map<string, number>();
@@ -256,6 +264,54 @@ async function syncProducts(odooClient: OdooClient, supabase: any): Promise<numb
       tagsData.forEach((tag: any) => {
         tagNameToId.set(tag.tag_name, tag.id);
       });
+    }
+
+    // Create missing tags with inferred dimensions
+    const missingTags = Array.from(allTagNames).filter(name => !tagNameToId.has(name));
+    if (missingTags.length > 0) {
+      log(`Creating ${missingTags.length} new tags...`);
+
+      // Ensure "Sin categorizar" dimension exists
+      const { data: uncategorizedDim } = await supabase
+        .from('tag_dimensions')
+        .select('id')
+        .eq('name', 'Sin categorizar')
+        .single();
+
+      let uncategorizedDimId = uncategorizedDim?.id;
+
+      if (!uncategorizedDimId) {
+        const { data: newDim } = await supabase
+          .from('tag_dimensions')
+          .insert({ name: 'Sin categorizar' })
+          .select('id')
+          .single();
+        uncategorizedDimId = newDim?.id || 1;
+      }
+
+      const newTagRows = missingTags.map(tagName => {
+        const inferredDimension = inferTagDimension(tagName);
+
+        return {
+          dimension_id: inferredDimension || uncategorizedDimId,
+          tag_name: tagName,
+          color: '#95a5a6', // Gray color for auto-created tags
+          product_count: 0
+        };
+      });
+
+      await insertBatch(supabase, 'tags', newTagRows);
+
+      // Re-fetch tags to get the new IDs
+      const updatedTagsData = await getAllTagsForMapping(supabase);
+      tagNameToId.clear();
+      if (updatedTagsData) {
+        updatedTagsData.forEach((tag: any) => {
+          tagNameToId.set(tag.tag_name, tag.id);
+        });
+      }
+
+      log(`Created ${missingTags.length} new tags`);
     }
 
     // Transform products for database
