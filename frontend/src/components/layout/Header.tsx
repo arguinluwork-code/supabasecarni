@@ -34,15 +34,15 @@ export function Header({
           </button>
         )}
 
-        {showSyncButtons && onSyncToOdoo && pendingCount > 0 && (
+        {showSyncButtons && onSyncToOdoo && (
           <button
             className="btn btn-primary"
             onClick={onSyncToOdoo}
             disabled={loading}
           >
             <span>⬆️</span>
-            <span>Enviar cambios a Odoo</span>
-            <span className="badge-count">{pendingCount}</span>
+            <span>Enviar a Odoo</span>
+            {pendingCount > 0 && <span className="badge-count">{pendingCount}</span>}
           </button>
         )}
 
